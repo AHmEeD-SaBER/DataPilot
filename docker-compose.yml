@@ -1,13 +1,15 @@
-version: '3.8'
-
 services:
   api:
     build: ./backend
     ports:
       - "8000:8000"
     volumes:
-      # Mount these directories to persist data across container restarts
-      - ./backend/uploads:/app/uploads
-      - ./backend/models:/app/models
+      # Use docker volumes instead of bind mounts to prevent permission issues on Docker Desktop for Linux
+      - uploads_volume:/app/uploads
+      - models_volume:/app/models
     environment:
       - PYTHONUNBUFFERED=1
+
+volumes:
+  uploads_volume:
+  models_volume:

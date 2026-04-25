@@ -31,9 +31,27 @@ docker-compose up -d --build
 You can stop it later with `docker-compose down`.
 
 **Option 2: Using standard Docker commands**
+
+First, build the image:
 ```bash
 docker build -t datapilot-backend .
+```
+
+Then, run the container (assuming you are in the `backend` directory), choose the command based on your operating system:
+
+**Linux / macOS:**
+```bash
+docker run -d -p 8000:8000 -v $(pwd)/uploads:/app/uploads -v $(pwd)/models:/app/models datapilot-backend
+```
+
+**Windows (PowerShell):**
+```powershell
 docker run -d -p 8000:8000 -v ${PWD}/uploads:/app/uploads -v ${PWD}/models:/app/models datapilot-backend
+```
+
+**Windows (Command Prompt):**
+```cmd
+docker run -d -p 8000:8000 -v %cd%\uploads:/app/uploads -v %cd%\models:/app/models datapilot-backend
 ```
 
 Interactive API docs are available at **http://localhost:8000/docs** once the server is running.

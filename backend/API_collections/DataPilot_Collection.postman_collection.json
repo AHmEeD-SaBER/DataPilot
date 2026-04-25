@@ -1,0 +1,137 @@
+{
+	"info": {
+		"_postman_id": "a931ca8b-bf92-4ebd-a3ec-809ba7dbf5d0",
+		"name": "DataPilot ML API",
+		"description": "Collection for the DataPilot ML automated machine learning backend.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Upload Dataset",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"if (jsonData.job_id) {",
+							"    pm.environment.set(\"job_id\", jsonData.job_id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": []
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/upload",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"upload"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. Start Training",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"task_type\": \"classification\",\n    \"target_column\": \"species\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/train/{{job_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"train",
+						"{{job_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. Poll Results",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/results/{{job_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"results",
+						"{{job_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Download Model",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/download/{{job_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"download",
+						"{{job_id}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
