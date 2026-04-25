@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount these directories to persist data across container restarts
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+    environment:
+      - PYTHONUNBUFFERED=1
