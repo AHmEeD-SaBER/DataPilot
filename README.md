@@ -7,6 +7,8 @@ FastAPI-based backend for the IS424 Automated ML project.
 ### Local Run
 
 ```bash
+cd backend
+
 # 1. Create and activate a virtual environment (recommended)
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
