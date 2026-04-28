@@ -1,0 +1,271 @@
+<section class="page">
+    <h1>Job Results</h1>
+
+    @if (result(); as current) {
+    <section class="status-panel" [class.fail]="isFailed()"
+        [class.done]="isCompleted()">
+        <p class="status-line">Status: <strong>{{ statusView() }}</strong></p>
+        <p class="hint">Job: {{ current.job_id }}</p>
+        @if (pollingActive()) {
+        <p class="hint">Polling backend for updates...</p>
+        }
+    </section>
+
+    @if (isFailed()) {
+    <section class="error-card">
+        <h2>Training Failed</h2>
+        <p>{{ current.error || 'An unknown error occurred during training.'
+            }}</p>
+        <div class="actions">
+            <button type="button" (click)="retryTraining()"
+                [disabled]="retrying()">
+                {{ retrying() ? 'Retrying...' : 'Retry Training' }}
+            </button>
+            <button type="button" class="secondary"
+                (click)="startNewJob()">Start New Job</button>
+        </div>
+    </section>
+    }
+
+    @if (isCompleted()) {
+    <section class="dashboard-grid">
+        <article class="tile">
+            <h2>Best Model</h2>
+            <p class="hero">{{ bestModel() || 'Unknown' }}</p>
+            <p class="hint">Task: {{ taskType() || 'N/A' }}</p>
+        </article>
+
+        <article class="tile">
+            <h2>Metric Snapshot</h2>
+            @if (scalarMetrics().length) {
+            <ul class="metric-list">
+                @for (metric of scalarMetrics(); track metric.label) {
+                <li>
+                    <span>{{ metric.label }}</span>
+                    <strong>{{ metric.value | number: '1.0-4' }}</strong>
+                </li>
+                }
+            </ul>
+            } @else {
+            <p class="hint">No scalar metrics available.</p>
+            }
+        </article>
+
+        <article class="tile">
+            <h2>Run Context</h2>
+            <ul class="metric-list">
+                <li>
+                    <span>Target Column</span>
+                    <strong>{{ trainRequest()?.target_column || 'None'
+                        }}</strong>
+                </li>
+                <li>
+                    <span>Ordinal Encodings</span>
+                    <strong>{{ trainRequest()?.ordinal_columns?.length || 0
+                        }}</strong>
+                </li>
+                <li>
+                    <span>Nominal Encodings</span>
+                    <strong>{{ trainRequest()?.nominal_columns?.length || 0
+                        }}</strong>
+                </li>
+                <li>
+                    <span>Dataset Rows</span>
+                    <strong>{{ uploadResponse()?.dataset_info?.rows || 'N/A'
+                        }}</strong>
+                </li>
+            </ul>
+        </article>
+    </section>
+
+    @if (metricReport().length) {
+    <section class="result-block">
+        <h2>Performance Report</h2>
+        <div class="report-grid">
+            @for (metric of metricReport(); track metric.key) {
+            <article class="report-card"
+                [class.good]="metric.quality === 'good'"
+                [class.ok]="metric.quality === 'ok'"
+                [class.poor]="metric.quality === 'poor'">
+                <p class="report-label">{{ metric.label }}</p>
+                <p class="report-value">{{ metricDisplayValue(metric) }}</p>
+                <p class="report-meta">
+                    {{ metric.interpretation }}
+                    @if (metric.direction === 'higher') {
+                    <span class="trend up">Higher is better</span>
+                    }
+                    @if (metric.direction === 'lower') {
+                    <span class="trend down">Lower is better</span>
+                    }
+                </p>
+            </article>
+            }
+        </div>
+    </section>
+    }
+
+    @if (chartBars().length) {
+    <section class="result-block">
+        <h2>Performance Chart</h2>
+        <div class="bars">
+            @for (bar of chartBars(); track bar.label) {
+            <div class="bar-row">
+                <span class="bar-label">{{ bar.label }}</span>
+                <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="bar.width"></div>
+                </div>
+                <span class="bar-value">{{ bar.value | number: '1.0-4' }}</span>
+            </div>
+            }
+        </div>
+    </section>
+    }
+
+    @if (modelLeaderboard().length) {
+    <section class="result-block">
+        <h2>Model Leaderboard</h2>
+        <div class="bars">
+            @for (row of modelLeaderboard(); track row.model) {
+            <div class="bar-row">
+                <span class="bar-label">#{{ row.rank }} {{ row.model }}</span>
+                <div class="bar-track">
+                    <div class="bar-fill"
+                        [style.width.%]="row.normalized"></div>
+                </div>
+                <span class="bar-value">{{ leaderboardScoreDisplay(row)
+                    }}</span>
+            </div>
+            }
+        </div>
+    </section>
+    }
+
+    @if (confusionMatrix(); as matrix) {
+    <section class="result-block">
+        <h2>Confusion Matrix</h2>
+        <p class="hint">Rows are actual classes. Columns are predicted
+            classes.</p>
+        <div class="matrix-wrap">
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Actual \ Predicted</th>
+                        @for (label of matrix.labels; track label) {
+                        <th>{{ label }}</th>
+                        }
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (row of matrix.matrix; track $index; let rowIdx =
+                    $index) {
+                    <tr>
+                        <th>{{ matrix.labels[rowIdx] }}</th>
+                        @for (cell of row; track $index) {
+                        <td class="heat-cell"
+                            [style.--cell-opacity]="confusionCellOpacity(cell, matrix.maxCellValue)">
+                            {{ cell }}
+                        </td>
+                        }
+                        <td class="total-cell">{{ matrix.rowTotals[rowIdx]
+                            }}</td>
+                    </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total</th>
+                        @for (total of matrix.columnTotals; track $index) {
+                        <td class="total-cell">{{ total }}</td>
+                        }
+                        <td class="total-cell">{{ matrix.grandTotal }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+    }
+
+    @if (featureImportance().length) {
+    <section class="result-block">
+        <h2>Feature Importance</h2>
+        <div class="bars">
+            @for (item of featureImportance(); track item.feature) {
+            <div class="bar-row">
+                <span class="bar-label">{{ item.feature }}</span>
+                <div class="bar-track">
+                    <div class="bar-fill alt"
+                        [style.width.%]="item.width"></div>
+                </div>
+                <span class="bar-value">{{ item.importance | number: '1.0-4'
+                    }}</span>
+            </div>
+            }
+        </div>
+    </section>
+    }
+
+    @if (insightNotes().length) {
+    <section class="result-block">
+        <h2>Insights & Recommendations</h2>
+        <ul class="insight-list">
+            @for (note of insightNotes(); track note) {
+            <li>{{ note }}</li>
+            }
+        </ul>
+    </section>
+    }
+
+    @if (clusterSizes().length) {
+    <section class="result-block">
+        <h2>Cluster Size Distribution</h2>
+        <div class="bars">
+            @for (cluster of clusterSizes(); track cluster.cluster) {
+            <div class="bar-row">
+                <span class="bar-label">Cluster {{ cluster.cluster }}</span>
+                <div class="bar-track">
+                    <div class="bar-fill alt"
+                        [style.width.%]="cluster.width"></div>
+                </div>
+                <span class="bar-value">{{ cluster.count }}</span>
+            </div>
+            }
+        </div>
+    </section>
+    }
+
+    @if (modelComparisons().length) {
+    <section class="result-block">
+        <h2>Model Comparison</h2>
+        <div class="cards-grid">
+            @for (row of modelComparisons(); track row.model) {
+            <article class="model-card">
+                <h3>{{ row.model }}</h3>
+                <ul>
+                    @for (metric of metricEntriesForModel(row); track
+                    metric.key) {
+                    <li>{{ metric.key }}: {{ metric.value }}</li>
+                    }
+                </ul>
+            </article>
+            }
+        </div>
+    </section>
+    }
+
+    <div class="actions">
+        <button type="button" (click)="downloadModel()">Download Model</button>
+        <button type="button" class="secondary" (click)="retryTraining()"
+            [disabled]="retrying()">
+            {{ retrying() ? 'Retrying...' : 'Retry Training' }}
+        </button>
+        <button type="button" class="secondary" (click)="startNewJob()">Start
+            New Job</button>
+    </div>
+    }
+    }
+
+    @if (error(); as message) {
+    <p class="error">{{ message }}</p>
+    }
+</section>

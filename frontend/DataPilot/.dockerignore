@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.angular
+.cache
+.git
+.gitignore
+.vscode
+README.md

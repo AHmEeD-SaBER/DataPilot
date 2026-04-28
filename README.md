@@ -22,13 +22,37 @@ uvicorn main:app --reload --port 8000
 
 ### Running with Docker
 
-Docker is the easiest way to run the service as it packages all dependencies automatically.
+Docker Compose now starts both parts of the project:
 
-**Option 1: Using Docker Compose (Recommended)**
+- Backend API on http://localhost:8000
+- Frontend UI on http://localhost:4200
+
+**Recommended: run the full stack**
 ```bash
-docker-compose up -d --build
+docker compose up --build
 ```
-You can stop it later with `docker-compose down`.
+
+After startup:
+
+- Open the UI at http://localhost:4200
+- Open the API docs at http://localhost:8000/docs
+
+Stop it with:
+```bash
+docker compose down
+```
+
+**Build or run one service separately**
+
+Backend image:
+```bash
+docker build -t datapilot-backend ./backend
+```
+
+Frontend image:
+```bash
+docker build -t datapilot-frontend ./frontend/DataPilot
+```
 
 **Option 2: Using standard Docker commands**
 

@@ -1,0 +1,131 @@
+<section class="page">
+    <h1>Upload Dataset</h1>
+    <p>Select a CSV or XLSX file to create a training job context.</p>
+
+    <input #filePicker hidden type="file" accept=".csv,.xlsx"
+        (change)="onFileSelected($event)" />
+
+    <div
+        class="dropzone"
+        [class.active]="isDragActive()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)">
+        <p>Drag and drop your dataset here</p>
+        <p class="hint">or</p>
+        <button type="button" class="ghost"
+            (click)="pickFile(filePicker)">Browse Files</button>
+    </div>
+
+    @if (selectedFile(); as file) {
+    <div class="selection">
+        <p><strong>Selected:</strong> {{ file.name }}</p>
+        <p class="hint">Size: {{ prettyFileSize() }}</p>
+    </div>
+    }
+
+    @if (error(); as message) {
+    <p class="error">{{ message }}</p>
+    }
+
+    <div class="actions">
+        <button type="button" (click)="upload()"
+            [disabled]="submitting() || !selectedFile()">
+            {{ submitting() ? 'Uploading...' : 'Upload Dataset' }}
+        </button>
+
+        @if (uploadResponse()) {
+        <button type="button" class="secondary"
+            (click)="goToTraining()">Continue to Training</button>
+        }
+    </div>
+
+    @if (uploadResponse(); as response) {
+    <section class="result-block">
+        <h2>Dataset Summary</h2>
+        <div class="summary-grid">
+            <article class="metric-card">
+                <p class="metric-label">Rows</p>
+                <p class="metric-value">{{ response.dataset_info.rows }}</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-label">Columns</p>
+                <p class="metric-value">{{ response.dataset_info.total_columns
+                    }}</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-label">Numeric</p>
+                <p class="metric-value">{{
+                    response.dataset_info.numeric_columns.length }}</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-label">Categorical</p>
+                <p class="metric-value">{{
+                    response.dataset_info.categorical_columns.length }}</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-label">Missing Cells</p>
+                <p class="metric-value">{{
+                    response.dataset_info.missing_values_total }}</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="result-block">
+        <h2>Column Profiles</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Missing</th>
+                        <th>Missing %</th>
+                        <th>Unique</th>
+                        <th>Samples</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (column of response.columns; track column.name) {
+                    <tr>
+                        <td>{{ column.name }}</td>
+                        <td>{{ column.dtype }}</td>
+                        <td>{{ column.is_categorical ? 'Categorical' : 'Numeric'
+                            }}</td>
+                        <td>{{ column.missing_count }}</td>
+                        <td>{{ column.missing_pct }}%</td>
+                        <td>{{ column.unique_count }}</td>
+                        <td>{{ column.sample_values.join(', ') || '-' }}</td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="result-block">
+        <h2>Data Preview</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        @for (col of previewColumns(); track col) {
+                        <th>{{ col }}</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (row of response.preview; track $index) {
+                    <tr>
+                        @for (col of previewColumns(); track col) {
+                        <td>{{ formatCell(row[col]) }}</td>
+                        }
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+    }
+</section>

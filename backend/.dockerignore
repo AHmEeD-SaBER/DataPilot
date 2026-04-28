@@ -9,7 +9,8 @@ venv/
 .venv/
 uploads/
 models/
-.git
+.git/
 .gitignore
+README.md
 Dockerfile
 .dockerignore

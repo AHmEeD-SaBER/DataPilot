@@ -1,0 +1,96 @@
+<section class="page">
+    <h1>Training Setup</h1>
+    <p>Configure task type, encoding strategy, and target column before
+        starting.</p>
+
+    @if (upload(); as dataset) {
+    <p class="hint">Active job: {{ dataset.job_id }} ({{ dataset.filename
+        }})</p>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form">
+        <label>
+            Task Type
+            <select formControlName="task_type">
+                <option value="classification">Classification</option>
+                <option value="regression">Regression</option>
+                <option value="clustering">Clustering</option>
+            </select>
+        </label>
+
+        <label>
+            Target Column
+            <select formControlName="target_column">
+                <option [ngValue]="null">None</option>
+                @for (column of allColumns(); track column) {
+                <option [value]="column">{{ column }}</option>
+                }
+            </select>
+        </label>
+
+        @if (isSupervisedTask() && form.errors?.['targetRequired'] &&
+        (form.touched || form.dirty)) {
+        <p class="error">Target column is required for classification and
+            regression.</p>
+        }
+
+        <div class="multi-select-grid">
+            <section class="encoding-panel">
+                <div class="encoding-header">
+                    <h3>Ordinal Columns</h3>
+                    <small>Click to mark ordered categories</small>
+                </div>
+
+                <div class="chip-grid">
+                    @for (column of categoricalColumns(); track column) {
+                    <button type="button" class="column-chip"
+                        [class.selected]="isEncodingSelected('ordinal_columns', column)"
+                        (click)="toggleColumnEncoding(column, 'ordinal_columns')">
+                        {{ column }}
+                    </button>
+                    }
+                </div>
+            </section>
+
+            <section class="encoding-panel">
+                <div class="encoding-header">
+                    <h3>Nominal Columns</h3>
+                    <small>Click to mark unordered categories</small>
+                </div>
+
+                <div class="chip-grid">
+                    @for (column of categoricalColumns(); track column) {
+                    <button type="button" class="column-chip"
+                        [class.selected]="isEncodingSelected('nominal_columns', column)"
+                        (click)="toggleColumnEncoding(column, 'nominal_columns')">
+                        {{ column }}
+                    </button>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="encoding-actions">
+            <button type="button" class="ghost" (click)="clearEncodingSelections()">
+                Clear Selected Encodings
+            </button>
+        </div>
+
+        @if (getOverlapMessage(); as overlapMessage) {
+        <p class="error">{{ overlapMessage }}</p>
+        }
+
+        <section class="payload-preview">
+            <h2>Payload Preview</h2>
+            <pre>{{ payloadPreview() | json }}</pre>
+        </section>
+
+        @if (error(); as message) {
+        <p class="error">{{ message }}</p>
+        }
+
+        <button type="submit" [disabled]="submitting()">
+            {{ submitting() ? 'Starting...' : 'Start Training' }}
+        </button>
+    </form>
+</section>

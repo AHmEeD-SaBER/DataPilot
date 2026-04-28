@@ -1,14 +1,24 @@
 services:
-  api:
-    build: ./backend
+  backend:
+    build:
+      context: ./backend
     ports:
       - "8000:8000"
     volumes:
-      # Use docker volumes instead of bind mounts to prevent permission issues on Docker Desktop for Linux
       - uploads_volume:/app/uploads
       - models_volume:/app/models
     environment:
-      - PYTHONUNBUFFERED=1
+      PYTHONUNBUFFERED: "1"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend/DataPilot
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   uploads_volume:
