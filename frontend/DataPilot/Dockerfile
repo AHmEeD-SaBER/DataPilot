@@ -5,8 +5,21 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+RUN npm install --save-dev @angular/cli
+
 COPY . .
-RUN npm run build
+
+RUN sed -i 's/"outputMode": "server"/"outputMode": "static"/g' angular.json
+
+RUN ./node_modules/.bin/ng build --no-ssr
+
+RUN rm -rf /app/dist/DataPilot/browser/upload \
+           /app/dist/DataPilot/browser/results \
+           /app/dist/DataPilot/browser/train \
+           /app/dist/DataPilot/browser/index.html
+
+RUN mv /app/dist/DataPilot/browser/index.csr.html \
+       /app/dist/DataPilot/browser/index.html
 
 FROM nginx:1.27-alpine AS runtime
 

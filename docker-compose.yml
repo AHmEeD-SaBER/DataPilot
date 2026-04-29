@@ -9,6 +9,7 @@ services:
       - models_volume:/app/models
     environment:
       PYTHONUNBUFFERED: "1"
+    user: "root"
     restart: unless-stopped
 
   frontend:
