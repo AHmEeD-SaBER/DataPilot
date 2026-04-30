@@ -15,7 +15,7 @@ class ColumnInfo(BaseModel):
     dtype: str
     is_categorical: bool
     missing_count: int
-    missing_pct: float      
+    missing_pct: float
     unique_count: int
     sample_values: list[Any]
 
@@ -33,7 +33,7 @@ class UploadResponse(BaseModel):
     filename: str
     dataset_info: DatasetInfo
     columns: list[ColumnInfo]
-    preview: list[dict]       
+    preview: list[dict]
 
 
 class TrainRequest(BaseModel):
@@ -47,14 +47,18 @@ class TrainRequest(BaseModel):
     def target_required_for_supervised(cls, v, info):
         task = info.data.get("task_type")
         if task in (TaskType.classification, TaskType.regression) and not v:
-            raise ValueError("target_column is required for classification and regression tasks.")
+            raise ValueError(
+                "target_column is required for classification and regression tasks."
+            )
         return v
 
     @model_validator(mode="after")
     def no_overlap_between_encoding_types(self):
         overlap = set(self.ordinal_columns) & set(self.nominal_columns)
         if overlap:
-            raise ValueError(f"These columns appear in both ordinal and nominal lists: {overlap}")
+            raise ValueError(
+                f"These columns appear in both ordinal and nominal lists: {overlap}"
+            )
         return self
 
 

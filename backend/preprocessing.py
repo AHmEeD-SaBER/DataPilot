@@ -7,7 +7,13 @@ from typing import Optional, Tuple, Any
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OrdinalEncoder, StandardScaler, OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import (
+    OrdinalEncoder,
+    StandardScaler,
+    OneHotEncoder,
+    LabelEncoder,
+)
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.utils.multiclass import type_of_target
 
 from schemas import TaskType
@@ -17,6 +23,7 @@ warnings.filterwarnings("ignore")
 # ──────────────────────────────────────────────────────────────────────────────
 # Public entry point
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def preprocess_data(
     df: pd.DataFrame,
@@ -33,10 +40,12 @@ def preprocess_data(
     preprocessor  : fitted ColumnTransformer  (saved alongside the model)
     """
     df = df.copy()
-    df.dropna(how="all", inplace=True)  # remove rows that are entirely NaN
+    df.dropna(how="all", inplace=True)
 
     if task_type in (TaskType.classification, TaskType.regression):
-        return _supervised_preprocessing(df, task_type, target_column, ordinal_columns, nominal_columns)
+        return _supervised_preprocessing(
+            df, task_type, target_column, ordinal_columns, nominal_columns
+        )
     else:
         return _clustering_preprocessing(df, ordinal_columns, nominal_columns)
 
@@ -45,7 +54,10 @@ def preprocess_data(
 # Supervised preprocessing
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _supervised_preprocessing(df, task_type, target_column, ordinal_columns, nominal_columns):
+
+def _supervised_preprocessing(
+    df, task_type, target_column, ordinal_columns, nominal_columns
+):
     if target_column not in df.columns:
         raise ValueError(f"Target column '{target_column}' not found in the dataset.")
 
@@ -83,6 +95,7 @@ def _supervised_preprocessing(df, task_type, target_column, ordinal_columns, nom
 # Clustering preprocessing
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def _clustering_preprocessing(df, ordinal_columns, nominal_columns):
     X = df.copy()
 
@@ -98,8 +111,9 @@ def _clustering_preprocessing(df, ordinal_columns, nominal_columns):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Helpers
+# Column transformer builder  (VarianceThreshold lives inside each sub-pipeline)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _build_column_transformer(X, ordinal_cols, nominal_cols):
     numeric_cols = X.select_dtypes(include=np.number).columns.tolist()
@@ -107,27 +121,49 @@ def _build_column_transformer(X, ordinal_cols, nominal_cols):
     transformers = []
 
     if numeric_cols:
-        num_pipe = Pipeline([
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler",  StandardScaler()),
-        ])
+        num_pipe = Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+                ("variance", VarianceThreshold(threshold=0.01)),
+            ]
+        )
         transformers.append(("num", num_pipe, numeric_cols))
 
     if ordinal_cols:
-        ord_pipe = Pipeline([
-            ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("encoder", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)),
-        ])
+        ord_pipe = Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="most_frequent")),
+                (
+                    "encoder",
+                    OrdinalEncoder(
+                        handle_unknown="use_encoded_value", unknown_value=-1
+                    ),
+                ),
+                ("variance", VarianceThreshold(threshold=0.01)),
+            ]
+        )
         transformers.append(("ord", ord_pipe, ordinal_cols))
 
     if nominal_cols:
-        nom_pipe = Pipeline([
-            ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("encoder", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
-        ])
+        nom_pipe = Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="most_frequent")),
+                (
+                    "encoder",
+                    OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                ),
+                ("variance", VarianceThreshold(threshold=0.01)),
+            ]
+        )
         transformers.append(("nom", nom_pipe, nominal_cols))
 
     return ColumnTransformer(transformers=transformers, remainder="drop")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Imbalance handling
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 def _handle_imbalance(X: np.ndarray, y: pd.Series):
@@ -136,12 +172,12 @@ def _handle_imbalance(X: np.ndarray, y: pd.Series):
     if ttype not in ("binary", "multiclass"):
         return X, y
 
-    counts     = y.value_counts()
-    min_count  = counts.min()
-    max_count  = counts.max()
-    ratio      = min_count / max_count
+    counts = y.value_counts()
+    min_count = counts.min()
+    max_count = counts.max()
+    ratio = min_count / max_count
 
-    if ratio >= 0.5:          # already balanced enough
+    if ratio >= 0.5:
         return X, y
 
     try:
@@ -149,11 +185,11 @@ def _handle_imbalance(X: np.ndarray, y: pd.Series):
         SMOTE = oversampling.SMOTE
         RandomOverSampler = oversampling.RandomOverSampler
 
-        if min_count >= 6:
-            sampler = SMOTE(random_state=42)
-        else:
-            sampler = RandomOverSampler(random_state=42)
-
+        sampler = (
+            SMOTE(random_state=42)
+            if min_count >= 6
+            else RandomOverSampler(random_state=42)
+        )
         X_res, y_res = sampler.fit_resample(X, y)
         return X_res, pd.Series(y_res)
 

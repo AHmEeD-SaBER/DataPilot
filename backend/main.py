@@ -22,7 +22,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from preprocessing import preprocess_data
-from schemas import ColumnInfo, DatasetInfo, JobResult, TaskType, TrainRequest, TrainResponse, UploadResponse
+from schemas import (
+    ColumnInfo,
+    DatasetInfo,
+    JobResult,
+    TaskType,
+    TrainRequest,
+    TrainResponse,
+    UploadResponse,
+)
 from training import train_and_evaluate
 from utils import to_serializable
 
@@ -38,7 +46,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,8 +57,8 @@ MODELS_DIR = "models"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(MODELS_DIR, exist_ok=True)
 
-_uploads: dict[str, str]  = {}   
-_jobs:    dict[str, dict] = {}   
+_uploads: dict[str, str] = {}
+_jobs: dict[str, dict] = {}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -76,10 +84,12 @@ def _get_job_or_404(job_id: str) -> dict:
 def _run_training(job_id: str, request: TrainRequest) -> None:
     try:
         file_path = _uploads[job_id]
-        df        = _read_dataframe(file_path)
+        df = _read_dataframe(file_path)
 
         # 1. Preprocess
-        X, y, preprocessor = preprocess_data(df, request.task_type, request.target_column)
+        X, y, preprocessor = preprocess_data(
+            df, request.task_type, request.target_column
+        )
 
         # 2. Train + evaluate
         best_model, best_name, comparison, best_metrics = train_and_evaluate(
@@ -99,14 +109,14 @@ def _run_training(job_id: str, request: TrainRequest) -> None:
 
         _jobs[job_id].update(
             {
-                "status":     "completed",
+                "status": "completed",
                 "model_path": model_path,
                 "results": to_serializable(
                     {
-                        "best_model":  best_name,
-                        "metrics":     best_metrics,
-                        "all_models":  comparison,
-                        "task_type":   request.task_type.value,
+                        "best_model": best_name,
+                        "metrics": best_metrics,
+                        "all_models": comparison,
+                        "task_type": request.task_type.value,
                         "target_column": request.target_column,
                     }
                 ),
@@ -122,6 +132,7 @@ def _run_training(job_id: str, request: TrainRequest) -> None:
 # Endpoints
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @app.get("/health", tags=["Utility"])
 def health_check():
     return {"status": "ok"}
@@ -136,7 +147,7 @@ async def upload_file(file: UploadFile = File(...)):
             detail=f"Unsupported file type '.{ext}'. Accepted: {SUPPORTED_EXTENSIONS}.",
         )
 
-    job_id    = str(uuid.uuid4())
+    job_id = str(uuid.uuid4())
     file_path = os.path.join(UPLOAD_DIR, f"{job_id}.{ext}")
 
     with open(file_path, "wb") as dst:
@@ -148,39 +159,44 @@ async def upload_file(file: UploadFile = File(...)):
         os.remove(file_path)
         raise HTTPException(status_code=422, detail=f"Could not parse file: {exc}")
 
-    numeric_cols     = df.select_dtypes(include=np.number).columns.tolist()
+    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
     categorical_cols = df.select_dtypes(exclude=np.number).columns.tolist()
 
     columns = [
         ColumnInfo(
-            name           = col,
-            dtype          = str(df[col].dtype),
-            is_categorical = col in categorical_cols,
-            missing_count  = int(df[col].isna().sum()),
-            missing_pct    = round(df[col].isna().mean() * 100, 2),
-            unique_count   = int(df[col].nunique()),
-            sample_values  = df[col].dropna().unique()[:5].tolist(),
+            name=col,
+            dtype=str(df[col].dtype),
+            is_categorical=col in categorical_cols,
+            missing_count=int(df[col].isna().sum()),
+            missing_pct=round(df[col].isna().mean() * 100, 2),
+            unique_count=int(df[col].nunique()),
+            sample_values=df[col].dropna().unique()[:5].tolist(),
         )
         for col in df.columns
     ]
 
     dataset_info = DatasetInfo(
-        rows                 = len(df),
-        total_columns        = len(df.columns),
-        numeric_columns      = numeric_cols,
-        categorical_columns  = categorical_cols,
-        missing_values_total = int(df.isna().sum().sum()),
+        rows=len(df),
+        total_columns=len(df.columns),
+        numeric_columns=numeric_cols,
+        categorical_columns=categorical_cols,
+        missing_values_total=int(df.isna().sum().sum()),
     )
 
     _uploads[job_id] = file_path
-    _jobs[job_id]    = {"status": "uploaded", "results": None, "model_path": None, "error": None}
+    _jobs[job_id] = {
+        "status": "uploaded",
+        "results": None,
+        "model_path": None,
+        "error": None,
+    }
 
     return UploadResponse(
-        job_id       = job_id,
-        filename     = file.filename or "",
-        dataset_info = dataset_info,
-        columns      = columns,
-        preview      = df.head(10).fillna("").to_dict(orient="records"),
+        job_id=job_id,
+        filename=file.filename or "",
+        dataset_info=dataset_info,
+        columns=columns,
+        preview=df.head(10).fillna("").to_dict(orient="records"),
     )
 
 
@@ -193,7 +209,9 @@ async def train(job_id: str, request: TrainRequest, background_tasks: Background
     job = _get_job_or_404(job_id)
 
     if job["status"] == "training":
-        raise HTTPException(status_code=409, detail="Training is already in progress for this job.")
+        raise HTTPException(
+            status_code=409, detail="Training is already in progress for this job."
+        )
 
     if job["status"] == "completed":
         raise HTTPException(
@@ -202,22 +220,25 @@ async def train(job_id: str, request: TrainRequest, background_tasks: Background
         )
 
     # Validate that target column exists in the file (early feedback)
-    if request.task_type in (TaskType.classification, TaskType.regression) and request.target_column:
+    if (
+        request.task_type in (TaskType.classification, TaskType.regression)
+        and request.target_column
+    ):
         df = _read_dataframe(_uploads[job_id])
         if request.target_column not in df.columns:
             raise HTTPException(
                 status_code=422,
                 detail=f"Column '{request.target_column}' not found. "
-                       f"Available columns: {list(df.columns)}",
+                f"Available columns: {list(df.columns)}",
             )
 
     _jobs[job_id]["status"] = "training"
     background_tasks.add_task(_run_training, job_id, request)
 
     return TrainResponse(
-        job_id  = job_id,
-        status  = "training",
-        message = "Training started. Poll GET /results/{job_id} for updates.",
+        job_id=job_id,
+        status="training",
+        message="Training started. Poll GET /results/{job_id} for updates.",
     )
 
 
@@ -234,10 +255,10 @@ def get_results(job_id: str):
     """
     job = _get_job_or_404(job_id)
     return JobResult(
-        job_id  = job_id,
-        status  = job["status"],
-        results = job["results"],
-        error   = job.get("error"),
+        job_id=job_id,
+        status=job["status"],
+        results=job["results"],
+        error=job.get("error"),
     )
 
 
@@ -261,7 +282,7 @@ def download_model(job_id: str):
         raise HTTPException(status_code=500, detail="Model file not found on server.")
 
     return FileResponse(
-        path         = model_path,
-        media_type   = "application/octet-stream",
-        filename     = f"datapilot_model_{job_id}.joblib",
+        path=model_path,
+        media_type="application/octet-stream",
+        filename=f"datapilot_model_{job_id}.joblib",
     )
