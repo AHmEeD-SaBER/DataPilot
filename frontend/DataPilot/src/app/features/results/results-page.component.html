@@ -126,8 +126,9 @@
         <h2>Model Leaderboard</h2>
         <div class="bars">
             @for (row of modelLeaderboard(); track row.model) {
-            <div class="bar-row">
-                <span class="bar-label">#{{ row.rank }} {{ row.model }}</span>
+            <div class="bar-row leaderboard-row">
+                <span class="rank-badge" [class.rank-1]="row.rank === 1" [class.rank-2]="row.rank === 2" [class.rank-3]="row.rank === 3">#{{ row.rank }}</span>
+                <span class="bar-label">{{ row.model }}</span>
                 <div class="bar-track">
                     <div class="bar-fill"
                         [style.width.%]="row.normalized"></div>

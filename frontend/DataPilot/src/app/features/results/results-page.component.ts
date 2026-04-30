@@ -202,10 +202,10 @@ export class ResultsPageComponent {
       }))
       .filter((item) => Number.isFinite(item.count));
 
-    const max = entries.reduce((current, item) => Math.max(current, item.count), 1);
+    const total = entries.reduce((sum, item) => sum + item.count, 0);
     return entries.map((entry) => ({
       ...entry,
-      width: Math.max(8, Math.round((entry.count / max) * 100)),
+      width: Math.max(8, Math.round((entry.count / total) * 100)),
     }));
   });
 
@@ -242,7 +242,13 @@ export class ResultsPageComponent {
     const values = rows.map((row) => row.score);
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const range = Math.max(1e-9, max - min);
+    let range = Math.max(1e-9, max - min);
+
+    // When scores are very close, use a minimum range to avoid exaggerating tiny differences
+    const relativeRange = max !== 0 ? range / Math.abs(max) : 0;
+    if (relativeRange < 0.02) {
+      range = Math.abs(max) * 0.02;
+    }
 
     const withNormalized = rows.map((row) => {
       const normalizedRaw =
@@ -250,7 +256,7 @@ export class ResultsPageComponent {
 
       return {
         ...row,
-        normalized: max === min ? 100 : Math.round(normalizedRaw * 100),
+        normalized: max === min ? 100 : Math.round(Math.min(95, normalizedRaw * 100)),
       };
     });
 
@@ -489,7 +495,9 @@ export class ResultsPageComponent {
   }
 
   protected metricEntriesForModel(row: ModelComparisonRow): Array<{ key: string; value: unknown }> {
-    return Object.entries(row.metrics).map(([key, value]) => ({ key, value }));
+    return Object.entries(row.metrics)
+      .filter(([, value]) => typeof value === 'number' || typeof value === 'string')
+      .map(([key, value]) => ({ key, value }));
   }
 
   protected metricDisplayValue(metric: MetricReportItem): string {
