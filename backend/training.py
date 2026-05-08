@@ -7,8 +7,8 @@ from schemas import TaskType
 warnings.filterwarnings("ignore")
 
 
-_N_ITER = 20
-_CV_FOLDS = 5
+_N_ITER = 5
+_CV_FOLDS = 3
 
 
 def train_and_evaluate(
@@ -39,26 +39,37 @@ def train_and_evaluate(
 def _tune(estimator, param_dist: dict, X_train, y_train, scoring: str):
     from sklearn.model_selection import RandomizedSearchCV
 
-    n_iter = min(_N_ITER, max(1, len(X_train) // _CV_FOLDS))
-    cv = min(_CV_FOLDS, len(X_train) // 2)
+    # Cap training data used during CV search to 5000 rows for speed;
+    # the winning estimator is then refit on the full training set.
+    # if len(X_train) > 5000:
+    #     idx = np.random.default_rng(42).choice(len(X_train), 5000, replace=False)
+    #     X_cv, y_cv = X_train[idx], y_train[idx]
+    # else:
+    #     X_cv, y_cv = X_train, y_train
 
-    try:
-        search = RandomizedSearchCV(
-            estimator,
-            param_distributions=param_dist,
-            n_iter=n_iter,
-            cv=cv,
-            scoring=scoring,
-            n_jobs=-1,
-            random_state=42,
-            refit=True,
-            error_score="raise",
-        )
-        search.fit(X_train, y_train)
-        return search.best_estimator_
-    except Exception:
-        estimator.fit(X_train, y_train)
-        return estimator
+    # n_iter = min(_N_ITER, max(1, len(X_cv) // _CV_FOLDS))
+    # cv = min(_CV_FOLDS, len(X_cv) // 2)
+
+    # try:
+    #     search = RandomizedSearchCV(
+    #         estimator,
+    #         param_distributions=param_dist,
+    #         n_iter=n_iter,
+    #         cv=cv,
+    #         scoring=scoring,
+    #         n_jobs=-1,
+    #         random_state=42,
+    #         refit=True,
+    #         error_score="raise",
+    #     )
+    #     search.fit(X_cv, y_cv)
+    #     search.best_estimator_.fit(X_train, y_train)
+    #     return search.best_estimator_
+    # except Exception:
+    #     estimator.fit(X_train, y_train)
+    #     return estimator
+
+    return estimator.fit(X_train, y_train)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -68,7 +79,7 @@ def _tune(estimator, param_dist: dict, X_train, y_train, scoring: str):
 
 def _classification(X, y):
     from sklearn.model_selection import train_test_split
-    from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+    from sklearn.ensemble import RandomForestClassifier
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import (
         accuracy_score,
@@ -86,35 +97,22 @@ def _classification(X, y):
         X, y, test_size=0.2, random_state=42, stratify=stratify
     )
 
-    # ── Candidate models + hyperparameter search spaces ───────────────────────
     candidates = {
         "RandomForestClassifier": (
             RandomForestClassifier(random_state=42, n_jobs=-1),
             {
-                "n_estimators": [100, 200, 300],
-                "max_depth": [None, 5, 10, 20],
-                "min_samples_split": [2, 5, 10],
-                "min_samples_leaf": [1, 2, 4],
-                "max_features": ["sqrt", "log2", None],
-                "bootstrap": [True, False],
+                "n_estimators": [100, 200],
+                "max_depth": [None, 10],
+                "min_samples_split": [2, 5],
+                "max_features": ["sqrt", "log2"],
             },
         ),
         "LogisticRegression": (
             LogisticRegression(max_iter=2000, random_state=42, n_jobs=-1),
             {
-                "C": [0.001, 0.01, 0.1, 1, 10, 100],
+                "C": [0.1, 1, 10],
                 "penalty": ["l2"],
-                "solver": ["lbfgs", "newton-cg"],
-            },
-        ),
-        "GradientBoostingClassifier": (
-            GradientBoostingClassifier(random_state=42),
-            {
-                "n_estimators": [100, 200, 300],
-                "learning_rate": [0.01, 0.05, 0.1, 0.2],
-                "max_depth": [3, 5, 7],
-                "subsample": [0.7, 0.8, 1.0],
-                "min_samples_split": [2, 5, 10],
+                "solver": ["lbfgs"],
             },
         ),
     }
@@ -162,20 +160,18 @@ def _classification(X, y):
                 else {},
             }
 
-    # Refit winner on full data
     best_model.fit(X, y)
     return best_model, best_name, comparison, best_metrics
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Regression
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 def _regression(X, y):
     from sklearn.model_selection import train_test_split
-    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-    from sklearn.linear_model import Ridge
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.linear_model import Ridge, LinearRegression
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -186,28 +182,25 @@ def _regression(X, y):
         "RandomForestRegressor": (
             RandomForestRegressor(random_state=42, n_jobs=-1),
             {
-                "n_estimators": [100, 200, 300],
-                "max_depth": [None, 5, 10, 20],
-                "min_samples_split": [2, 5, 10],
-                "min_samples_leaf": [1, 2, 4],
-                "max_features": ["sqrt", "log2", None],
+                "n_estimators": [100, 200],
+                "max_depth": [None, 10],
+                "min_samples_split": [2, 5],
+                "max_features": ["sqrt", "log2"],
             },
         ),
         "RidgeRegression": (
             Ridge(),
             {
-                "alpha": [0.001, 0.01, 0.1, 1, 10, 100, 1000],
-                "solver": ["auto", "svd", "cholesky", "lsqr"],
+                "alpha": [0.01, 0.1, 1, 10, 100],
+                "solver": ["auto", "svd"],
             },
         ),
-        "GradientBoostingRegressor": (
-            GradientBoostingRegressor(random_state=42),
+        "LinearRegression": (
+            LinearRegression(n_jobs=-1),
             {
-                "n_estimators": [100, 200, 300],
-                "learning_rate": [0.01, 0.05, 0.1, 0.2],
-                "max_depth": [3, 5, 7],
-                "subsample": [0.7, 0.8, 1.0],
-                "min_samples_split": [2, 5, 10],
+                "fit_intercept": [True, False],
+                "normalize": [True, False],
+                "alpha": [0.01, 0.1, 1, 10, 100],
             },
         ),
     }
@@ -254,7 +247,6 @@ def _regression(X, y):
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Clustering
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 def _clustering(X):

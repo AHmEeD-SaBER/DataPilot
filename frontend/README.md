@@ -108,7 +108,7 @@ Location: features/upload
 
 - Supports file picker and drag-and-drop
 - Accepts only .csv and .xlsx
-- Max file size: 20 MB
+- Max file size: 100 MB
 - Shows:
   - dataset summary (rows, columns, missing values)
   - per-column profile

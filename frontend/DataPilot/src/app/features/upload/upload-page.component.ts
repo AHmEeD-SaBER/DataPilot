@@ -14,7 +14,7 @@ import { ApiError } from '../../shared/models/datapilot.models';
   styleUrl: './upload-page.component.css',
 })
 export class UploadPageComponent {
-  private static readonly MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+  private static readonly MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
   private readonly api = inject(DatapilotApiService);
   private readonly jobState = inject(JobStateService);
@@ -126,7 +126,7 @@ export class UploadPageComponent {
 
     if (file.size > UploadPageComponent.MAX_FILE_SIZE_BYTES) {
       this.selectedFile.set(null);
-      this.error.set('File is too large. Maximum allowed size is 20 MB.');
+      this.error.set('File is too large. Maximum allowed size is 100 MB.');
       return;
     }
 
