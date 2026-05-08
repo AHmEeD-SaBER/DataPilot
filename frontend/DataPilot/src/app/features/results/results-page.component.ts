@@ -57,6 +57,33 @@ interface ConfusionMatrixView {
   maxCellValue: number;
 }
 
+interface MetricBar {
+  label: string;
+  value: number;
+  width: number;
+  left: number;
+  maxDisplay: string;
+}
+
+interface LeaderboardRow {
+  rank: number;
+  model: string;
+  score: number;
+  normalized: number;
+  left: number;
+  direction: 'higher' | 'lower';
+  scoreKey: string;
+  maxDisplay: string;
+}
+
+interface ClusterSizeBar {
+  // <-- Added new Interface for clusters
+  cluster: string;
+  count: number;
+  width: number;
+  percentage: string;
+}
+
 @Component({
   selector: 'app-results-page',
   standalone: true,
@@ -179,15 +206,41 @@ export class ResultsPageComponent {
       .filter((key) => typeof metricsMap[key] === 'number')
       .map((key) => {
         const value = metricsMap[key] as number;
+
+        let maxDisplay = '1';
+        let width = 10;
+        let left = 0;
+
+        if (['mae', 'mse'].includes(key)) {
+          maxDisplay = 'Lower is better';
+          // للمقاييس اللي الأقل فيها أفضل
+          const inverse = 1 / (1 + Math.max(0, value));
+          width = Math.max(6, Math.min(100, Math.round(inverse * 100)));
+          left = 0;
+        } else if (key === 'silhouette_score') {
+          maxDisplay = '1';
+          // البار اللي بيبدأ من النص (Diverging Bar)
+          const normalized = Math.abs(value) * 50;
+          width = Math.max(6, Math.min(50, Math.round(normalized)));
+          left = value >= 0 ? 50 : 50 - width;
+        } else {
+          // للمقاييس العادية (من 0 لـ 1 أو 100%)
+          maxDisplay = this.isProbabilityMetric(key) ? '100%' : '1';
+          width = Math.max(6, Math.min(100, Math.round(value * 100)));
+          left = 0;
+        }
+
         return {
           label: key,
           value,
-          width: this.metricToWidth(type, key, value),
+          width,
+          left, // <-- ضفنا الخاصية هنا عشان الـ Error يختفي
+          maxDisplay,
         };
       });
   });
 
-  protected readonly clusterSizes = computed(() => {
+  protected readonly clusterSizes = computed<ClusterSizeBar[]>(() => {
     const metricsMap = this.metricMap();
     const clusterSizes = metricsMap?.['cluster_sizes'];
 
@@ -203,10 +256,14 @@ export class ResultsPageComponent {
       .filter((item) => Number.isFinite(item.count));
 
     const total = entries.reduce((sum, item) => sum + item.count, 0);
-    return entries.map((entry) => ({
-      ...entry,
-      width: Math.max(8, Math.round((entry.count / total) * 100)),
-    }));
+    return entries.map((entry) => {
+      const pct = total > 0 ? ((entry.count / total) * 100).toFixed(1) : '0';
+      return {
+        ...entry,
+        width: Math.max(8, Math.round((entry.count / total) * 100)),
+        percentage: `${pct}%`, // نسبة الـ cluster من الإجمالي
+      };
+    });
   });
 
   protected readonly modelLeaderboard = computed<LeaderboardRow[]>(() => {
@@ -226,49 +283,52 @@ export class ResultsPageComponent {
       .map((row) => {
         const rawScore = row.metrics[config.key];
         const score = typeof rawScore === 'number' ? rawScore : null;
-        return score === null
-          ? null
-          : {
-              model: row.model,
-              score,
-            };
+        return score === null ? null : { model: row.model, score };
       })
       .filter((row): row is { model: string; score: number } => row !== null);
 
-    if (!rows.length) {
-      return [];
-    }
+    if (!rows.length) return [];
 
     const values = rows.map((row) => row.score);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    let range = Math.max(1e-9, max - min);
+    const sorted = rows.sort((a, b) =>
+      config.direction === 'higher' ? b.score - a.score : a.score - b.score,
+    );
 
-    // When scores are very close, use a minimum range to avoid exaggerating tiny differences
-    const relativeRange = max !== 0 ? range / Math.abs(max) : 0;
-    if (relativeRange < 0.02) {
-      range = Math.abs(max) * 0.02;
-    }
+    const withNormalized = sorted.map((row, index) => {
+      let normalized = 0;
+      let left = 0;
+      let maxDisplay = '1';
 
-    const withNormalized = rows.map((row) => {
-      const normalizedRaw =
-        config.direction === 'higher' ? (row.score - min) / range : (max - row.score) / range;
+      if (config.key === 'silhouette_score') {
+        const val = row.score;
+        normalized = Math.abs(val) * 50; // القيمة المطلقة مضروبة في 50%
+        left = val >= 0 ? 50 : 50 - normalized;
+        maxDisplay = '1';
+      } else if (config.direction === 'higher') {
+        normalized = Math.min(100, row.score * 100);
+        left = 0;
+        maxDisplay = this.isProbabilityMetric(config.key) ? '100%' : '1';
+      } else {
+        // للمقاييس اللي الأقل فيها أحسن (زي MAE)
+        const maxVal = Math.max(...values, 1e-9);
+        normalized = Math.max(8, (row.score / maxVal) * 100);
+        left = 0;
+        maxDisplay = 'Lower is better';
+      }
 
       return {
-        ...row,
-        normalized: max === min ? 100 : Math.round(Math.min(95, normalizedRaw * 100)),
+        rank: index + 1,
+        model: row.model,
+        score: row.score,
+        normalized: Math.round(normalized),
+        left: Math.round(left),
+        direction: config.direction,
+        scoreKey: config.key,
+        maxDisplay,
       };
     });
 
-    const sorted = withNormalized.sort((a, b) => b.normalized - a.normalized);
-    return sorted.map((row, index) => ({
-      rank: index + 1,
-      model: row.model,
-      score: row.score,
-      normalized: Math.max(8, row.normalized),
-      direction: config.direction,
-      scoreKey: config.key,
-    }));
+    return withNormalized;
   });
 
   protected readonly featureImportance = computed<FeatureImportanceBar[]>(() => {

@@ -107,14 +107,19 @@
     @if (chartBars().length) {
     <section class="result-block">
         <h2>Performance Chart</h2>
-        <div class="bars">
+        <div class="metrics-simple-list">
             @for (bar of chartBars(); track bar.label) {
-            <div class="bar-row">
-                <span class="bar-label">{{ bar.label }}</span>
-                <div class="bar-track">
-                    <div class="bar-fill" [style.width.%]="bar.width"></div>
-                </div>
-                <span class="bar-value">{{ bar.value | number: '1.0-4' }}</span>
+            <div class="metric-simple-row">
+                <span class="metric-label">{{ bar.label }}</span>
+                <span class="metric-value-wrap">
+                    <strong class="highlight-value">{{ bar.value | number:
+                        '1.0-4' }}</strong>
+                    @if (bar.maxDisplay === 'Lower is better') {
+                    <span class="hint-text">({{ bar.maxDisplay }})</span>
+                    } @else {
+                    <span class="hint-text">/ {{ bar.maxDisplay }}</span>
+                    }
+                </span>
             </div>
             }
         </div>
@@ -124,23 +129,71 @@
     @if (modelLeaderboard().length) {
     <section class="result-block">
         <h2>Model Leaderboard</h2>
-        <div class="bars">
-            @for (row of modelLeaderboard(); track row.model) {
-            <div class="bar-row leaderboard-row">
-                <span class="rank-badge" [class.rank-1]="row.rank === 1" [class.rank-2]="row.rank === 2" [class.rank-3]="row.rank === 3">#{{ row.rank }}</span>
-                <span class="bar-label">{{ row.model }}</span>
-                <div class="bar-track">
-                    <div class="bar-fill"
-                        [style.width.%]="row.normalized"></div>
+
+        <div class="podium-container">
+
+            @if (modelLeaderboard()[1]) {
+            <div class="podium-step step-2">
+                <div class="model-info">
+                    <span class="model-name">{{ modelLeaderboard()[1].model
+                        }}</span>
+                    <span class="model-score">{{
+                        leaderboardScoreDisplay(modelLeaderboard()[1]) }}</span>
                 </div>
-                <span class="bar-value">{{ leaderboardScoreDisplay(row)
-                    }}</span>
+                <div class="podium-block">
+                    <span class="rank-number">2</span>
+                </div>
+            </div>
+            }
+
+            @if (modelLeaderboard()[0]) {
+            <div class="podium-step step-1">
+                <div class="model-info">
+                    <div class="trophy">🏆</div>
+                    <span class="model-name">{{ modelLeaderboard()[0].model
+                        }}</span>
+                    <span class="model-score">{{
+                        leaderboardScoreDisplay(modelLeaderboard()[0]) }}</span>
+                </div>
+                <div class="podium-block">
+                    <span class="rank-number">1</span>
+                </div>
+            </div>
+            }
+
+            @if (modelLeaderboard()[2]) {
+            <div class="podium-step step-3">
+                <div class="model-info">
+                    <span class="model-name">{{ modelLeaderboard()[2].model
+                        }}</span>
+                    <span class="model-score">{{
+                        leaderboardScoreDisplay(modelLeaderboard()[2]) }}</span>
+                </div>
+                <div class="podium-block">
+                    <span class="rank-number">3</span>
+                </div>
             </div>
             }
         </div>
+
+        @if (modelLeaderboard().length > 3) {
+        <div class="rest-leaderboard">
+            @for (row of modelLeaderboard().slice(3); track row.model) {
+            <div class="metric-simple-row">
+                <span class="metric-label">
+                    <span class="rank-badge">#{{ row.rank }}</span>
+                    {{ row.model }}
+                </span>
+                <span class="metric-value-wrap">
+                    <strong class="highlight-value">{{
+                        leaderboardScoreDisplay(row) }}</strong>
+                </span>
+            </div>
+            }
+        </div>
+        }
     </section>
     }
-
     @if (confusionMatrix(); as matrix) {
     <section class="result-block">
         <h2>Confusion Matrix</h2>
@@ -228,7 +281,11 @@
                     <div class="bar-fill alt"
                         [style.width.%]="cluster.width"></div>
                 </div>
-                <span class="bar-value">{{ cluster.count }}</span>
+                <span class="bar-value">
+                    {{ cluster.count }}
+                    <span style="font-size: 0.8em; opacity: 0.7;">({{
+                        cluster.percentage }})</span>
+                </span>
             </div>
             }
         </div>

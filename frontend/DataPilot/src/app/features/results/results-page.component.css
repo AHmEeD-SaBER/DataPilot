@@ -2,7 +2,7 @@
     display: grid;
     gap: 1.25rem;
     color: var(--text-primary);
-        padding: 15px;
+    padding: 15px;
     border-radius: 10px;
 }
 
@@ -354,4 +354,130 @@ pre {
     .actions button {
         width: 100%;
     }
+}
+
+/* =========================================
+   Performance Chart & Simple Rows Styles
+   ========================================= */
+.metrics-simple-list,
+.rest-leaderboard {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.metric-simple-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    /* لون خلفية خفيف */
+    padding: 15px 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metric-label {
+    font-weight: 500;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.highlight-value {
+    font-size: 1.2rem;
+    color: #4fc3f7;
+    /* لون مميز للرقم، تقدر تغيره حسب ثيم الموقع */
+    font-weight: bold;
+}
+
+.hint-text {
+    opacity: 0.6;
+    font-size: 0.85rem;
+    margin-left: 6px;
+}
+
+/* =========================================
+   Podium (Model Leaderboard) Styles
+   ========================================= */
+.podium-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 10px;
+    margin: 40px 0 20px 0;
+    min-height: 250px;
+}
+
+.podium-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    max-width: 140px;
+}
+
+.model-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.trophy {
+    font-size: 2.5rem;
+    margin-bottom: 5px;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+.model-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+    word-break: break-word;
+}
+
+.model-score {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-family: monospace;
+}
+
+/* بلوكات المنصة (الألوان والارتفاعات زي الصورة) */
+.podium-block {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 15px;
+    border-radius: 6px 6px 0 0;
+    color: white;
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.rank-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    opacity: 0.9;
+}
+
+/* ألوان المنصة التدريجية (تقدر تغيرها للون الثيم بتاعك) */
+.step-1 .podium-block {
+    height: 140px;
+    background: linear-gradient(to bottom, #ff4757, #ff6b81);
+}
+
+.step-2 .podium-block {
+    height: 100px;
+    background: linear-gradient(to bottom, #ff6b81, #ff7f50);
+}
+
+.step-3 .podium-block {
+    height: 70px;
+    background: linear-gradient(to bottom, #ff7f50, #ffa502);
 }

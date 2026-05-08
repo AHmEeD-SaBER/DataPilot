@@ -28,6 +28,7 @@ Docker Compose now starts both parts of the project:
 - Frontend UI on http://localhost:4200
 
 **Recommended: run the full stack**
+
 ```bash
 docker compose up --build
 ```
@@ -38,6 +39,7 @@ After startup:
 - Open the API docs at http://localhost:8000/docs
 
 Stop it with:
+
 ```bash
 docker compose down
 ```
@@ -45,11 +47,13 @@ docker compose down
 **Build or run one service separately**
 
 Backend image:
+
 ```bash
 docker build -t datapilot-backend ./backend
 ```
 
 Frontend image:
+
 ```bash
 docker build -t datapilot-frontend ./frontend/DataPilot
 ```
@@ -57,6 +61,7 @@ docker build -t datapilot-frontend ./frontend/DataPilot
 **Option 2: Using standard Docker commands**
 
 First, build the image:
+
 ```bash
 docker build -t datapilot-backend .
 ```
@@ -64,16 +69,19 @@ docker build -t datapilot-backend .
 Then, run the container (assuming you are in the `backend` directory), choose the command based on your operating system:
 
 **Linux / macOS:**
+
 ```bash
 docker run -d -p 8000:8000 -v $(pwd)/uploads:/app/uploads -v $(pwd)/models:/app/models datapilot-backend
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 docker run -d -p 8000:8000 -v ${PWD}/uploads:/app/uploads -v ${PWD}/models:/app/models datapilot-backend
 ```
 
 **Windows (Command Prompt):**
+
 ```cmd
 docker run -d -p 8000:8000 -v %cd%\uploads:/app/uploads -v %cd%\models:/app/models datapilot-backend
 ```
@@ -84,13 +92,13 @@ Interactive API docs are available at **http://localhost:8000/docs** once the se
 
 ## Endpoints
 
-| Method | URL | Description |
-|--------|-----|-------------|
-| `GET`  | `/health` | Liveness check |
-| `POST` | `/upload` | Upload a CSV or XLSX file → returns `job_id` + data preview |
-| `POST` | `/train/{job_id}` | Start training (async) |
-| `GET`  | `/results/{job_id}` | Poll for training status / metrics |
-| `GET`  | `/download/{job_id}` | Download `.joblib` model bundle |
+| Method | URL                  | Description                                                 |
+| ------ | -------------------- | ----------------------------------------------------------- |
+| `GET`  | `/health`            | Liveness check                                              |
+| `POST` | `/upload`            | Upload a CSV or XLSX file → returns `job_id` + data preview |
+| `POST` | `/train/{job_id}`    | Start training (async)                                      |
+| `GET`  | `/results/{job_id}`  | Poll for training status / metrics                          |
+| `GET`  | `/download/{job_id}` | Download `.joblib` model bundle                             |
 
 ---
 
@@ -190,20 +198,20 @@ print(model.predict(X))   # e.g. [0]
 
 ## Supported ML Tasks
 
-| Task | Algorithms | Selection criterion |
-|------|-----------|---------------------|
-| Classification | RandomForest, LogisticRegression, GradientBoosting | highest weighted F1 |
-| Regression | RandomForest, LinearRegression, GradientBoosting | lowest MAE |
-| Clustering | KMeans, AgglomerativeClustering | highest silhouette score |
+| Task           | Algorithms                                         | Selection criterion      |
+| -------------- | -------------------------------------------------- | ------------------------ |
+| Classification | RandomForest, LogisticRegression, GradientBoosting | highest weighted F1      |
+| Regression     | RandomForest, LinearRegression, GradientBoosting   | lowest MAE               |
+| Clustering     | KMeans, AgglomerativeClustering                    | highest silhouette score |
 
 ### Preprocessing pipeline (auto-applied)
 
-| Step | Technique |
-|------|-----------|
-| Missing values (numeric) | Median imputation |
-| Missing values (categorical) | Most-frequent imputation |
-| Categorical encoding | OneHotEncoder |
-| Feature scaling | StandardScaler |
+| Step                             | Technique                 |
+| -------------------------------- | ------------------------- |
+| Missing values (numeric)         | Median imputation         |
+| Missing values (categorical)     | Most-frequent imputation  |
+| Categorical encoding             | OneHotEncoder             |
+| Feature scaling                  | StandardScaler            |
 | Class imbalance (classification) | SMOTE / RandomOverSampler |
 
 ---
