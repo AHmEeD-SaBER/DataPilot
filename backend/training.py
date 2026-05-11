@@ -16,14 +16,7 @@ def train_and_evaluate(
     y: Optional[np.ndarray],
     task_type: TaskType,
 ) -> Tuple[Any, str, dict, dict]:
-    """
-    Returns
-    -------
-    best_model   : fitted estimator (refitted on full data)
-    best_name    : str  – name of the winning algorithm
-    comparison   : dict – lightweight metrics for every candidate
-    best_metrics : dict – full metrics for the winning model
-    """
+
     if task_type == TaskType.classification:
         return _classification(X, y)
     if task_type == TaskType.regression:
@@ -31,9 +24,7 @@ def train_and_evaluate(
     return _clustering(X)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # Helpers
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 def _tune(estimator, param_dist: dict, X_train, y_train, scoring: str):
@@ -72,10 +63,7 @@ def _tune(estimator, param_dist: dict, X_train, y_train, scoring: str):
     return estimator.fit(X_train, y_train)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # Classification
-# ──────────────────────────────────────────────────────────────────────────────
-
 
 def _classification(X, y):
     from sklearn.model_selection import train_test_split
@@ -295,10 +283,6 @@ def _clustering(X):
 
 
 def _find_best_k(X: np.ndarray, max_k: int = 8) -> int:
-    """
-    Elbow-aware k selection: tries k in [2, max_k] and picks the value
-    with the highest silhouette score, falling back to k=2 on errors.
-    """
     from sklearn.cluster import KMeans
     from sklearn.metrics import silhouette_score
 

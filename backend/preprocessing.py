@@ -20,9 +20,8 @@ from schemas import TaskType
 
 warnings.filterwarnings("ignore")
 
-# ──────────────────────────────────────────────────────────────────────────────
+
 # Public entry point
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 def preprocess_data(
@@ -32,13 +31,7 @@ def preprocess_data(
     ordinal_columns: list[str] = [],
     nominal_columns: list[str] = [],
 ) -> Tuple[np.ndarray, Optional[np.ndarray], Any]:
-    """
-    Returns
-    -------
-    X_transformed : np.ndarray
-    y             : np.ndarray | None   (None for clustering)
-    preprocessor  : fitted ColumnTransformer  (saved alongside the model)
-    """
+
     df = df.copy()
     df.dropna(how="all", inplace=True)
 
@@ -50,9 +43,7 @@ def preprocess_data(
         return _clustering_preprocessing(df, ordinal_columns, nominal_columns)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # Supervised preprocessing
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 def _supervised_preprocessing(
@@ -91,9 +82,7 @@ def _supervised_preprocessing(
     return X_transformed, y.values, preprocessor
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # Clustering preprocessing
-# ──────────────────────────────────────────────────────────────────────────────
 
 
 def _clustering_preprocessing(df, ordinal_columns, nominal_columns):
@@ -110,10 +99,7 @@ def _clustering_preprocessing(df, ordinal_columns, nominal_columns):
     return X_transformed, None, preprocessor
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Column transformer builder  (VarianceThreshold lives inside each sub-pipeline)
-# ──────────────────────────────────────────────────────────────────────────────
-
+# Column transformer builder
 
 def _build_column_transformer(X, ordinal_cols, nominal_cols):
     numeric_cols = X.select_dtypes(include=np.number).columns.tolist()
@@ -161,10 +147,7 @@ def _build_column_transformer(X, ordinal_cols, nominal_cols):
     return ColumnTransformer(transformers=transformers, remainder="drop")
 
 
-# ──────────────────────────────────────────────────────────────────────────────
 # Imbalance handling
-# ──────────────────────────────────────────────────────────────────────────────
-
 
 def _handle_imbalance(X: np.ndarray, y: pd.Series):
     """Apply SMOTE or RandomOverSampler if the dataset is imbalanced."""

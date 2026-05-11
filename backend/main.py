@@ -34,9 +34,7 @@ from schemas import (
 from training import train_and_evaluate
 from utils import to_serializable
 
-# ──────────────────────────────────────────────────────────────────────────────
 # App setup
-# ──────────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="DataPilot ML API",
@@ -63,7 +61,6 @@ _jobs: dict[str, dict] = {}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
-# ──────────────────────────────────────────────────────────────────────────────
 
 SUPPORTED_EXTENSIONS = {"csv", "xlsx"}
 
@@ -130,8 +127,6 @@ def _run_training(job_id: str, request: TrainRequest) -> None:
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Endpoints
-# ──────────────────────────────────────────────────────────────────────────────
-
 
 @app.get("/health", tags=["Utility"])
 def health_check():
@@ -202,10 +197,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 @app.post("/train/{job_id}", response_model=TrainResponse, tags=["Training"])
 async def train(job_id: str, request: TrainRequest, background_tasks: BackgroundTasks):
-    """
-    Start the automated ML pipeline for a previously uploaded file.
-    Training runs in the background; poll `/results/{job_id}` for progress.
-    """
+
     job = _get_job_or_404(job_id)
 
     if job["status"] == "training":
