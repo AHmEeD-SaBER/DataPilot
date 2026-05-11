@@ -30,8 +30,7 @@ def train_and_evaluate(
 def _tune(estimator, param_dist: dict, X_train, y_train, scoring: str):
     from sklearn.model_selection import RandomizedSearchCV
 
-    # Cap training data used during CV search to 5000 rows for speed;
-    # the winning estimator is then refit on the full training set.
+
     # if len(X_train) > 5000:
     #     idx = np.random.default_rng(42).choice(len(X_train), 5000, replace=False)
     #     X_cv, y_cv = X_train[idx], y_train[idx]
